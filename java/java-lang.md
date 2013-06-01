@@ -134,9 +134,10 @@ public class OracleJdbcTest
   
     public static void main(String[] args)  
     {  
-        OracleJdbcTest test = new OracleJdbcTest();  
+        OracleJdbcTest test = new OracleJdbcTest();
         test.init();  
         test.fetch();  
     }  
 }
 ```
+21. Java方法签名包含返回值，如果呗调用的方法(如在不同的jar中)返回值变化则会`java.lang.NoSuchMethodError`。原因：1) 返回值设计调用ABI 2) 保证质量 (C++有mangling，C ABI？ platform specific)
