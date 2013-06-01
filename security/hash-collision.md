@@ -42,7 +42,7 @@ Chosen-prefix collision attack
 case study
 -------------
 以色列间谍木马伪造微软 MD5签名:
-[Flame]{http://en.wikipedia.org/wiki/Flame_(malware)}
+[Flame](http://en.wikipedia.org/wiki/Flame_(malware\))
 > In 2005, researchers were able to create pairs of PostScript documents and X.509 certificates with the same hash. Later that year, MD5's designer Ron Rivest wrote, "md5 and sha1 are both clearly broken (in terms of collision-resistance)."
 > [more n wiki](http://en.wikipedia.org/wiki/Chosen-prefix_collision_attack#Chosen_prefix_collision_attack)
 
