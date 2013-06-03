@@ -160,6 +160,7 @@ Lesson Learned
 ---------------------
 * 内存屏障的正确性
 * 尽可能减少内存屏障的使用，以提高性能
-* mutex 实现必须有内存屏障(x86可以是mfence系列指令,也可以是xchg, lock prefix等指令，不同CPU支持程度不同)，否则不肯能实现线程安全([Threads Cannot be Implemented as a Library](http://www.hpl.hp.com/techreports/2004/HPL-2004-209.pdf))
+* mutex 实现必须有内存屏障(x86可以是mfence系列指令,也可以是cmpxchg, lock prefix等指令，不同CPU支持程度不同)，否则不可能实现线程安全([Threads Cannot be Implemented as a Library](http://www.hpl.hp.com/techreports/2004/HPL-2004-209.pdf))
+* setjmp/longjmp与GCC O2引发的bug：由于setjmp/longjmp会保存恢复所有寄存器且不涉及所线程(多核也没影响，因为切换core肯定会更新cache)，所以问题在于编译器优化(由于优化是在汇编级别做的，可能没事别出setjmp/longjmp)，所以volatile可能是有用的(imagemagic bug)。
 * 内存顺序需要编译器(指令级别优化，使用寄存器)和CPU(使用缓存，乱序执行等)共同配合，所以X86/X64虽无乱序，但也需要对应指令
 * Java volatile有内存顺序保证(有mb)，可用于mt，比如实现一些lock-free结构
