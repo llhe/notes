@@ -44,3 +44,7 @@ Case study:
   ```
   Q: How does TukoDB orgnize it's index?
   ```
+* Cosmos Structured Streams: 可以是 `CLUSTERED BY` or `HASH CLUSTERED BY`，用于优化Reducer/Join等操作:
+  ```
+    OUTPUT TO SSTREAM “MySStream.ss” CLUSTERED BY Column1;
+  ```
