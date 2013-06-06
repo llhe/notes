@@ -2,7 +2,6 @@ cache/bpool/page replacement algorithm
 ========================
 
 [Reference](http://en.wikipedia.org/wiki/Cache_algorithms)
-http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/io/hfile/BlockCache.html
 
 
 Bélády's Algorithm
@@ -63,3 +62,22 @@ Multiple Queue (MQ)
 
 ARC (Adaptive Replacement Cache)
 ------------------
+2Q的变体，每个队列底部外接一个ghost队列，只存储元数据，不存储值(类似LRU-K)，算法自适应，规则见[wiki](http://en.wikipedia.org/wiki/Adaptive_replacement_cache)
+IBM专利，IBM存储控制器，ZFS有应用，Postgres 8.0曾使用过
+
+LIRS
+-------------------
+MySQL NDB使用
+
+
+Case study
+-------------------
+* Memcached: LRU
+* [postgres](https://github.com/postgres/postgres/tree/master/src/backend/storage/buffer) 
+    * 使用类clock sweep算法 (截止到9.3beta，8.0曾短暂使用ARC算法)：每个page，有一个count (上限为`BM_MAX_USAGE_COUNT`，默认为5，即如果最近访问五次，有五次机会survive)，每次`PIN (BuﬀerAlloc)`的时候+1，每次扫描-1，扫描时为0(前提是未被正在使用的，ping/ref count 为0)则选为victim而被evict。
+    * 对于`VACUUM`和`seq scan`单独分配ring buffer，采用相同的clock sweep算法，buffer ring大小为256k，目的是大于CPU的L2 cache line (For sequential scans, a 256KB ring is used. That's small enough to fit in L2 cache, which makes transferring pages from OS cache to shared buffer cache efficient.  Even less would often be enough, but the ring must be big enough  to accommodate all pages in the scan that are pinned concurrently.)
+* InnoDB:
+LRU 变体： http://dev.mysql.com/doc/refman/5.5/en/innodb-buffer-pool.html
+另外，InnoDB对于压缩表(类似LevelDB)，分别cache压缩数据和解压后的数据，根据系统的IO/CPU bound类型，自适应调整LRU和unzip_LRU队列。
+* HBase: 2Q变体
+* Linux Kernel
