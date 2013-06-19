@@ -21,7 +21,7 @@ clustered index v.s. non-clustered index
 
 Case study:
   1. InnoDB: 索引和数据存在一棵b+树上，所以不宜采用b-tree。 [related posts](http://blog.jcole.us/2013/01/10/btree-index-structures-in-innodb/)
-  2. PostgreSQL: 索引和数据分开存储，采用b-tree (应该比b+tree好些)，但是pg并不默认选取cluster index，但是可以手动通过CLUSTER命令指定任何索引，对heap file根据指定的索引按顺序重组。[links](http://stackoverflow.com/questions/4796548/about-clustered-index-in-postgres)
+  2. PostgreSQL: 索引和数据分开存储，采用b+tree (need ref: 相比btree, 利于table scan以及对对cache友好)，但是pg并不默认选取cluster index，但是可以手动通过CLUSTER命令指定任何索引，对heap file根据指定的索引按顺序重组。[links](http://stackoverflow.com/questions/4796548/about-clustered-index-in-postgres)
 
 实际上pg和innodb区别不大，索引部分跟数据是不在同一块的，都可以保证数据的聚集性(pg 手动执行)
 
