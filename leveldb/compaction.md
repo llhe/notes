@@ -34,9 +34,9 @@ compact目标文件的选取策略
 * imm_ != null，dump immutable memtable文件
 * 执行外部调用的compact(如果指定的范围过大，则分批逐渐完成)
 * 根据数据库状态选取：
-** level 1+文件大小总和超限，选取上次的compact_pointer_作为候选
-** level 0 文件总数超限，也根据compact_pointer_选取，同时选取level0上所有重叠的sst文件
-**选取由于seek超限引起的compact。
+  * level 1+文件大小总和超限，选取上次的compact_pointer_作为候选
+  * level 0 文件总数超限，也根据compact_pointer_选取，同时选取level0上所有重叠的sst文件
+  * 选取由于seek超限引起的compact。
 
 ```C++
 Compaction* VersionSet::PickCompaction() {
