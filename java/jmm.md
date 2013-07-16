@@ -33,17 +33,20 @@ volatile
 可以推断出volatile可以用作线程同步，即volatile的读写会保证编译器(含JIT)和CPU的LOAD/STORE内存屏障
 
 2. 应用  
-  * 共享数据:  
+  * 共享数据:
+
       ```Java
            Value value = null;
            volatile bool flag = false;
       ```
-  * Thread 1:  
+  * Thread 1:
+
       ```Java
            value = calculateValue(); // a1
            flag = true;
       ```
-  * Thread 2:  
+  * Thread 2:
+
       ```Java
            if (flag) {
                useValue(value); // a2
@@ -81,26 +84,25 @@ are at least as up-to-date as the final fields are.
 3. developerworks文章说明 
 > The new JMM also seeks to provide a new guarantee of initialization safety -- that as long as an object is properly constructed (meaning that a reference to the object is not published before the constructor has completed), then all threads will see the values for its final fields that were set in its constructor, regardless of whether or not synchronization is used to pass the reference from one thread to another. Further, any variables that can be reached through a final field of a properly constructed object, such as fields of an object referenced by a final field, are also guaranteed to be visible to other threads as well. *This means that if a final field contains a reference to, say, a LinkedList, in addition to the correct value of the reference being visible to other threads, also the contents of that LinkedList at construction time would be visible to other threads without synchronization*. The result is a significant strengthening of the meaning of final -- that final fields can be safely accessed without synchronization, and that compilers can assume that final fields will not change and can therefore optimize away multiple fetches.
 
-4. The JSR-133 Cookbook for Compiler Writers
-> 
-  1. A store of a final field (inside a constructor) and, if the field is a reference, any store that this final can reference, cannot be reordered with a subsequent store (outside that constructor) of the reference to the object holding that field into a variable accessible to other threads. For example, you cannot reorder
+4. The JSR-133 Cookbook for Compiler Writers 
+>  1. A store of a final field (inside a constructor) and, if the field is a reference, any store that this final can reference, cannot be reordered with a subsequent store (outside that constructor) of the reference to the object holding that field into a variable accessible to other threads. For example, you cannot reorder  
   ```
       x.finalField = v; ... ; sharedRef = x;
   ```  
-  This comes into play for example when inlining constructors, where "..." spans the logical end of the constructor. You cannot move stores of finals within constructors down below a store outside of the constructor that might make the object visible to other threads. (As seen below, this may also require issuing a barrier). Similarly, you cannot reorder either of the first two with the third assignment in:
+  This comes into play for example when inlining constructors, where "..." spans the logical end of the constructor. You cannot move stores of finals within constructors down below a store outside of the constructor that might make the object visible to other threads. (As seen below, this may also require issuing a barrier). Similarly, you cannot reorder either of the first two with the third assignment in:  
   ```
        v.afield = 1; x.finalField = v; ... ; sharedRef = x;
-  ```
-  2. The initial load (i.e., the very first encounter by a thread) of a final field cannot be reordered with the initial load of the reference to the object containing the final field. This comes into play in:
+  ```  
+>  2. The initial load (i.e., the very first encounter by a thread) of a final field cannot be reordered with the initial load of the reference to the object containing the final field. This comes into play in:  
   ```
       x = sharedRef; ... ; i = x.finalField;
   ```  
 A compiler would never reorder these since they are dependent, but there can be consequences of this rule on some processors.
 
-5. 解释
+5. 中文解释  
 从同步角度，final包含了volatile的所有语义，所以Java中不能同时使用这两个关键字。只要能保证在构造函数中不使this逃逸，则构造函数结束时(或者说程序获取其引用时)，其所有的final域均保证完成内存的Store (即使此域内部不是递归final的？但是这种情况意义不大，因为包含递归的非final域，说明可以被改变，仍有出现同步问题的风险)。
 
-6. 反射
+6. 反射  
 反射过程可以修改final域，应注意安全问题
 
 7. 参考资料
