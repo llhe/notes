@@ -102,7 +102,9 @@ A compiler would never reorder these since they are dependent, but there can be 
 5. 中文解释  
 从同步角度，final包含了volatile的所有语义，所以Java中不能同时使用这两个关键字。只要能保证在构造函数中不使this逃逸，则构造函数结束时(或者说程序获取其引用时)，其所有的final域均保证完成内存的Store (即使此域内部不是递归final的？但是这种情况意义不大，因为包含递归的非final域，说明可以被改变，仍有出现同步问题的风险)。
 
-6. 反射  
+6. 注意  
+标准只针对类成员的final修饰符和构造函数中的赋值，其余不能保证，例如不保证final局部变量的可见性。
+7. 反射  
 反射过程可以修改final域，应注意安全问题
 
 7. 参考资料
