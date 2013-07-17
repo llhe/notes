@@ -110,3 +110,13 @@ A compiler would never reorder these since they are dependent, but there can be 
 7. 参考资料
   * http://docs.oracle.com/javase/specs/jls/se7/jls7.pdf
   * http://www.ibm.com/developerworks/library/j-jtp03304/
+
+变量的安全发布总结
+-------------------
+Java concurrency in practice (3.5.3):
+  * 在静态初始化函数中初始化一个对象引用
+  * 将对象引用保存到volatile类型域或者AtomicReference对象中
+  * 将对象引用保存到某个正确构造函数对象的final类型域中
+  * 将对象引用保存到一个由锁保护的域中
+  * 将对象引用保存到线程安全的容器中(实际上等同于上述的volatile, 锁规则)
+  
