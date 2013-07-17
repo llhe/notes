@@ -14,7 +14,11 @@ Java同步机制
   * Unsafe park/unpark
      * park总会调用pthread_cond_wait/timewait->futex(除非前面有unpark先调用)，但monitor可能会优化成spinlock
 	 * 不同于条件变量需要mutex配合，park采用的解决方法是记录上次未配对的unpark
-	 > Block current thread, returning when a balancing unpark occurs, or a balancing unpark has already occurred, or the thread is interrupted, or, if not absolute and time is not zero, the given time nanoseconds have elapsed, or if absolute, the given deadline in milliseconds since Epoch has passed, or spuriously (i.e., returning for no "reason"). Note: This operation is in the Unsafe class only because unpark is, so it would be strange to place it elsewhere.  
+	      * *Block current thread, returning when a balancing unpark occurs, or a balancing unpark has already occurred, 
+	 or the thread is interrupted, or, if not absolute and time is not zero, the given time nanoseconds 
+have elapsed, or if absolute, the given deadline in milliseconds since Epoch has passed, or spuriously (i.e., 
+returning for no "reason"). Note: This operation is in the Unsafe class only because unpark is, so it would be 
+strange to place it elsewhere.*
 2. Unsafe实现的显式锁以及并发库
   * java.util.concurrent.locks 显式锁，用户可以扩展
      * 由Daug Lea实现，也实现了偏向锁，相对monitor的好处是灵活，且用户可扩展定义自己的锁
