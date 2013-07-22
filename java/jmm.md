@@ -58,6 +58,7 @@ volatile
   * http://docs.oracle.com/javase/specs/jls/se7/jls7.pdf
   * http://jeremymanson.blogspot.com/2008/11/what-volatile-means-in-java.html
   * http://www.ibm.com/developerworks/library/j-jtp03304/
+  * http://g.oswego.edu/dl/jmm/cookbook.html
 
 final
 -------------------
