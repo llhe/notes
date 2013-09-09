@@ -1,7 +1,12 @@
-1. 序列化
+HBase RPC实现
+==============
+
+序列化
+-----------
 默认的序列化采用Hadoop的Writable接口，即手工进行序列化
 
-2. 涉及到的类和接口
+涉及到的类和接口
+-----------
   * org.apache.hadoop.hbase.client.HTableInterface：用户的接口
   * org.apache.hadoop.hbase.client.HTable
   * org.apache.hadoop.hbase.client.HConnection：定义了cluster的接口，其中`getHRegionConnection`返回`HRegionInterface`
@@ -9,7 +14,8 @@
   * org.apache.hadoop.hbase.ipc.HRegionInterface: 真正的region的rpc接口
   * org.apache.hadoop.hbase.ipc.HBaseClient：真正进行rpc调用的类
 
-3. 调用关系
+调用关系
+-----------
 HTableInterface/HTable定义实现了table的CRUD操作，是最终client的使用接口。
 其含有成员HConnection connection初始化的时候
 ```Java
@@ -315,7 +321,7 @@ HTableInterface/HTable定义实现了table的CRUD操作，是最终client的使�
     }
   }
 ```
-`Call`是个类似于`Future`的东东，没有实质逻辑。`Connection connection = getConnection(addr, protocol, ticket, rpcTimeout, call);`最终会把`call`放到一个`ConcurrentSkipListMap<Integer, Call> calls`中，而`connection`实际上是一个线程：
+`Call`是个类似于`Future`的东东，没有实质逻辑，需要注意的是里面有一个线程安全的自增的id，用于区分一个连接同时进行的多个rpc调用的结果分发。`Connection connection = getConnection(addr, protocol, ticket, rpcTimeout, call);`最终会把`call`放到一个`ConcurrentSkipListMap<Integer, Call> calls`中，而`connection`实际上是一个线程：
 ```Java
   /** Thread that reads responses and notifies callers.  Each connection owns a
    * socket connected to a remote address.  Calls are multiplexed through this
@@ -362,3 +368,4 @@ HTableInterface/HTable定义实现了table的CRUD操作，是最终client的使�
     }
 ```
 但是注意`synchronized (this.out)`使用的仍然是`connection`的统一的`DataOutputStream`。
+
