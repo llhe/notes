@@ -7,6 +7,7 @@
   * org.apache.hadoop.hbase.client.HConnection：定义了cluster的接口，其中`getHRegionConnection`返回`HRegionInterface`
   * org.apache.hadoop.hbase.client.HConnectionImplementation
   * org.apache.hadoop.hbase.ipc.HRegionInterface: 真正的region的rpc接口
+  * org.apache.hadoop.hbase.ipc.HBaseClient：真正进行rpc调用的类
 
 3. 调用关系
 HTableInterface/HTable定义实现了table的CRUD操作，是最终client的使用接口。
@@ -202,3 +203,162 @@ HTableInterface/HTable定义实现了table的CRUD操作，是最终client的使�
   }
 ```
 可见，默认情况(RPC_ENGINE_PROP = "hbase.rpc.engine"未配置)，engine实际是一个WritableRpcEngine的实例(`engine = (RpcEngine) ReflectionUtils.newInstance(impl, conf);`)。
+接下来需要看一下`WritableRpcEngine.getProxy`:
+```Java
+  /** Construct a client-side proxy object that implements the named protocol,
+   * talking to a server at the named address. */
+  public VersionedProtocol getProxy(
+      Class<? extends VersionedProtocol> protocol, long clientVersion,
+      InetSocketAddress addr, User ticket,
+      Configuration conf, SocketFactory factory, int rpcTimeout)
+    throws IOException {
+
+      VersionedProtocol proxy =
+          (VersionedProtocol) Proxy.newProxyInstance(
+              protocol.getClassLoader(), new Class[] { protocol },
+              new Invoker(protocol, addr, ticket, conf, factory, rpcTimeout));
+    if (proxy instanceof VersionedProtocol) {
+      long serverVersion = ((VersionedProtocol)proxy)
+        .getProtocolVersion(protocol.getName(), clientVersion);
+      if (serverVersion != clientVersion) {
+        throw new HBaseRPC.VersionMismatch(protocol.getName(), clientVersion,
+                                      serverVersion);
+      }
+    }
+    return proxy;
+  }
+```
+其中关键代码是`new Invoker(protocol, addr, ticket, conf, factory, rpcTimeout)`，`Invoker implements InvocationHandler`其invoke方法：
+```Java
+    public Object invoke(Object proxy, Method method, Object[] args)
+        throws Throwable {
+      final boolean logDebug = LOG.isDebugEnabled();
+      long startTime = System.currentTimeMillis();
+
+      HbaseObjectWritable value = (HbaseObjectWritable)
+        client.call(new Invocation(method, protocol, args), address,
+                    protocol, ticket, rpcTimeout);
+      long callTime = System.currentTimeMillis() - startTime;
+      if (logDebug) {
+        // FIGURE HOW TO TURN THIS OFF!
+        LOG.debug("Call: " + method.getName() + " " + callTime);
+      }
+      if (callTime > this.clientWarnIpcResponseTime) {
+        LOG.warn("Slow ipc call, MethodName=" + method.getName() + ", consume time=" + callTime);
+      }
+      return value.get();
+    }
+```
+其中关键代码：
+```Java
+      HbaseObjectWritable value = (HbaseObjectWritable)
+        client.call(new Invocation(method, protocol, args), address,
+                    protocol, ticket, rpcTimeout);
+```
+`public class Invocation extends VersionedWritable implements Configurable`是真正的rpc调用参数传输的封装类，其序列化依次序列化了调用方法，版本，参数等信息：
+```Java
+  public void write(DataOutput out) throws IOException {
+    super.write(out);
+    out.writeUTF(this.methodName);
+    out.writeLong(clientVersion);
+    out.writeInt(clientMethodsHash);
+    out.writeInt(parameterClasses.length);
+    for (int i = 0; i < parameterClasses.length; i++) {
+      HbaseObjectWritable.writeObject(out, parameters[i], parameterClasses[i],
+                                 conf);
+    }
+  }
+```
+而`HBaseClient client`是真正进行RPC调用的类：
+```Java
+  /** Make a call, passing <code>param</code>, to the IPC server running at
+   * <code>address</code> which is servicing the <code>protocol</code> protocol,
+   * with the <code>ticket</code> credentials, returning the value.
+   * Throws exceptions if there are network problems or if the remote code
+   * threw an exception. */
+  public Writable call(Writable param, InetSocketAddress addr,
+                       Class<? extends VersionedProtocol> protocol,
+                       User ticket, int rpcTimeout)
+      throws InterruptedException, IOException {
+    Call call = new Call(param);
+    Connection connection = getConnection(addr, protocol, ticket, rpcTimeout, call);
+    connection.sendParam(call);                 // send the parameter
+    boolean interrupted = false;
+    //noinspection SynchronizationOnLocalVariableOrMethodParameter
+    synchronized (call) {
+      while (!call.done) {
+        if (connection.shouldCloseConnection.get()) {
+          throw new IOException("Unexpected closed connection");
+        }
+        try {
+          call.wait(1000);                           // wait for the result
+        } catch (InterruptedException ignored) {
+          // save the fact that we were interrupted
+          interrupted = true;
+        }
+      }
+
+      if (interrupted) {
+        // set the interrupt flag now that we are done waiting
+        Thread.currentThread().interrupt();
+      }
+
+      if (call.error != null) {
+        if (call.error instanceof RemoteException) {
+          call.error.fillInStackTrace();
+          throw call.error;
+        }
+        // local exception
+        throw wrapException(addr, call.error);
+      }
+      return call.value;
+    }
+  }
+```
+`Call`是个类似于`Future`的东东，没有实质逻辑。`Connection connection = getConnection(addr, protocol, ticket, rpcTimeout, call);`最终会把`call`放到一个`ConcurrentSkipListMap<Integer, Call> calls`中，而`connection`实际上是一个线程：
+```Java
+  /** Thread that reads responses and notifies callers.  Each connection owns a
+   * socket connected to a remote address.  Calls are multiplexed through this
+   * socket: responses may be delivered out of order. */
+  protected class Connection extends Thread {
+```
+`run`方法中会等待返回，注意：请求的发起并不在此线程中，而是在客户端的调用线程中同步发送的，即`connection.sendParam(call); `中会同步的去序列化并发送请求：
+```Java
+    /* Initiates a call by sending the parameter to the remote server.
+     * Note: this is not called from the Connection thread, but by other
+     * threads.
+     */
+    protected void sendParam(Call call) {
+      if (shouldCloseConnection.get()) {
+        return;
+      }
+
+      // For serializing the data to be written.
+
+      final DataOutputBuffer d = new DataOutputBuffer();
+      try {
+        if (LOG.isDebugEnabled())
+          LOG.debug(getName() + " sending #" + call.id);
+
+        d.writeInt(0xdeadbeef); // placeholder for data length
+        d.writeInt(call.id);
+        call.param.write(d);
+        byte[] data = d.getData();
+        int dataLength = d.getLength();
+        // fill in the placeholder
+        Bytes.putInt(data, 0, dataLength - 4);
+        //noinspection SynchronizeOnNonFinalField
+        synchronized (this.out) { // FindBugs IS2_INCONSISTENT_SYNC
+          out.write(data, 0, dataLength);
+          out.flush();
+        }
+      } catch(IOException e) {
+        markClosed(e);
+      } finally {
+        //the buffer is just an in-memory buffer, but it is still polite to
+        // close early
+        IOUtils.closeStream(d);
+      }
+    }
+```
+但是注意`synchronized (this.out)`使用的仍然是`connection`的统一的`DataOutputStream`。
