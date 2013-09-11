@@ -146,3 +146,4 @@ HashMap(int initialCapacity, float loadFactor);
     }
     ```
 21. Java方法签名包含返回值，如果呗调用的方法(如在不同的jar中)返回值变化则会`java.lang.NoSuchMethodError`。原因：1) 返回值设计调用ABI 2) 保证质量 (C++有mangling，C ABI？ platform specific)
+22. getCanonicalName(), getName(), getSimpleName(): 对于非匿名类，第一种是所有部分都是.来连接，第二种内部类使用$，第三种只有名字部分。其中2是load class所使用的。
