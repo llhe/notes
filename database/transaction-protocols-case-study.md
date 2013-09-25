@@ -34,7 +34,7 @@ Percolator
       * 如果是通过chubby检测可见性的话，是否需要在主记录存储一个事务拥有者的UUID/GUID？应该需要，开销：时间8B+机器xB+随机数yB=zB
       * 由于当事务拥有者还活着的话，此函数可能会等待，但正常情况不commit不会太久，但是chubby的lease周期不会太短(但这不是critical/normal path)
 	
-Alta California
+Alta
 -----------------
 0. [logical timestamp](http://en.wikipedia.org/wiki/Lamport_timestamps)
   * A process increments its counter before each event in that process;
