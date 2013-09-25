@@ -147,3 +147,64 @@ HashMap(int initialCapacity, float loadFactor);
     ```
 21. Java方法签名包含返回值，如果呗调用的方法(如在不同的jar中)返回值变化则会`java.lang.NoSuchMethodError`。原因：1) 返回值设计调用ABI 2) 保证质量 (C++有mangling，C ABI？ platform specific)
 22. getCanonicalName(), getName(), getSimpleName(): 对于非匿名类，第一种是所有部分都是.来连接，第二种内部类使用$，第三种只有名字部分。其中2是load class所使用的。
+23. Java Serializable序列化：如果期望更多控制，可以重载`private void writeObject(ObjectOutputStream oos)`和`private void readObject(ObjectInputStream ois)`，一般做法是将需要自己序列化的域声明为`transient`：
+    ```Java
+public class ArrayList<E> extends AbstractList<E>
+        implements List<E>, RandomAccess, Cloneable, java.io.Serializable
+{
+    private static final long serialVersionUID = 8683452581122892189L;
+
+    /**
+     * The array buffer into which the elements of the ArrayList are stored.
+     * The capacity of the ArrayList is the length of this array buffer.
+     */
+    private transient Object[] elementData;
+
+    // ...
+
+    /**
+     * Save the state of the <tt>ArrayList</tt> instance to a stream (that
+     * is, serialize it).
+     *
+     * @serialData The length of the array backing the <tt>ArrayList</tt>
+     *             instance is emitted (int), followed by all of its elements
+     *             (each an <tt>Object</tt>) in the proper order.
+     */
+    private void writeObject(java.io.ObjectOutputStream s)
+        throws java.io.IOException{
+	// Write out element count, and any hidden stuff
+	int expectedModCount = modCount;
+	s.defaultWriteObject();
+
+        // Write out array length
+        s.writeInt(elementData.length);
+
+	// Write out all elements in the proper order.
+	for (int i=0; i<size; i++)
+            s.writeObject(elementData[i]);
+
+	if (modCount != expectedModCount) {
+            throw new ConcurrentModificationException();
+        }
+
+    }
+
+    /**
+     * Reconstitute the <tt>ArrayList</tt> instance from a stream (that is,
+     * deserialize it).
+     */
+    private void readObject(java.io.ObjectInputStream s)
+        throws java.io.IOException, ClassNotFoundException {
+	// Read in size, and any hidden stuff
+	s.defaultReadObject();
+
+        // Read in array length and allocate array
+        int arrayLength = s.readInt();
+        Object[] a = elementData = new Object[arrayLength];
+
+	// Read in all elements in the proper order.
+	for (int i=0; i<size; i++)
+            a[i] = s.readObject();
+    }
+}
+    ```
