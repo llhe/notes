@@ -114,7 +114,7 @@ A compiler would never reorder these since they are dependent, but there can be 
 
 atomic
 -------------------
-Atomic*.compareAndSet: 在CAS的同时能够保证其他共享变量的happens-before关系
+Atomic*.compareAndSet: 在CAS的同时能够保证其他共享变量的happens-before关系  
 Atomic*.weakCompareAndSet：只做CAS(当前线程逻辑不会错乱，CAS指令可以保证内存读写)，适用场合有限
 
 变量的安全发布总结
