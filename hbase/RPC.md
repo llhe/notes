@@ -132,7 +132,7 @@ HTableInterface/HTable定义实现了table的CRUD操作，是最终client的使�
               LOG.info("create proxy for region server:" + address + ", rpcTimeout="
                   + this.rpcTimeout + ", time consume=" + (System.currentTimeMillis() - startTime));
               this.servers.put(Addressing.createHostAndPortStr(
-                  address.getHostName(), address.getPort()), server);
+                  address.getHostName(), address.getPort()), server); // 可见每个HTable到每个RS最多一个链接
             } catch (RemoteException e) {
               LOG.warn("RemoteException connecting to RS", e);
               // Throw what the RemoteException was carrying.
