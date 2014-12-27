@@ -8,8 +8,8 @@ HBase RPC实现
 涉及到的类和接口
 -----------
   * org.apache.hadoop.hbase.client.HTableInterface：用户的接口
-  * org.apache.hadoop.hbase.client.HTable
-  * org.apache.hadoop.hbase.client.HConnection：定义了cluster的接口，其中`getHRegionConnection`返回`HRegionInterface`
+  * org.apache.hadoop.hbase.client.HTable : 实际仅仅是个buffer，里面的HConnection是全局共享的(每种conf一个实例)
+  * org.apache.hadoop.hbase.client.HConnection：定义了cluster的接口，其中`getHRegionConnection`返回`HRegionInterface`。每个conf一个实例，htable之间是共享的。
   * org.apache.hadoop.hbase.client.HConnectionImplementation
   * org.apache.hadoop.hbase.ipc.HRegionInterface: 真正的region的rpc接口
   * org.apache.hadoop.hbase.ipc.HBaseClient：真正进行rpc调用的类
