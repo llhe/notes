@@ -3,7 +3,16 @@
 首先定义了cache buffer，实际就是一个循环数组做缓冲区，满了会覆盖最旧的。另外icache buffer可以注册一个fusion函数，覆盖掉这套循环缓冲的逻辑。
 AllLatest实现了一套简单的融合逻辑，也就是以M0的消息为准，每次M0有新的消息，执行这个自定义回调，读取M1-M3的最新消息，得到一个融合后的复合buffer。
 这里**没看到一些复杂的等待逻辑**
-
+```c++
+  // data_visitor.h
+  bool TryFetch(std::shared_ptr<M0>& m0, std::shared_ptr<M1>& m1) {  // NOLINT
+    if (data_fusion_->Fusion(&next_msg_index_, m0, m1)) {
+      next_msg_index_++;
+      return true;
+    }
+    return false;
+  }
+```
 * DataDispatcher：就是定义了一个简单的thread-safe map，每个channel id对应一个channel buffer (里面是cache buffer)的俩表，
 代表每个channel的消费者的buffer。生产者可以调用`Dispatch`进行分发，同时调用一个notifier。注意这个notifier在协程创建时注册的回调。
 ```c++
