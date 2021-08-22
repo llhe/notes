@@ -55,3 +55,26 @@ bool Scheduler::CreateTask(std::function<void()>&& func,
   return true;
 }
 ```
+`NotifyProcessor`会修改协程的运行状态：
+```c++
+bool SchedulerClassic::NotifyProcessor(uint64_t crid) {
+  if (cyber_unlikely(stop_)) {
+    return true;
+  }
+
+  {
+    ReadLockGuard<AtomicRWLock> lk(id_cr_lock_);
+    if (id_cr_.find(crid) != id_cr_.end()) {
+      auto cr = id_cr_[crid];
+      if (cr->state() == RoutineState::DATA_WAIT ||
+          cr->state() == RoutineState::IO_WAIT) {
+        cr->SetUpdateFlag();
+      }
+
+      ClassicContext::Notify(cr->group_name());
+      return true;
+    }
+  }
+  return false;
+}
+```
