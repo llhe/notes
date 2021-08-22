@@ -6,6 +6,7 @@ AllLatest实现了一套简单的融合逻辑，也就是以M0的消息为准，
 ```c++
   // data_visitor.h
   bool TryFetch(std::shared_ptr<M0>& m0, std::shared_ptr<M1>& m1) {  // NOLINT
+    // Fusion命名不太好，实际是FetchFusionedMessage
     if (data_fusion_->Fusion(&next_msg_index_, m0, m1)) {
       next_msg_index_++;
       return true;
